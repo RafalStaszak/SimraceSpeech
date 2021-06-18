@@ -8,7 +8,7 @@ import wave
 import webrtcvad
 from halo import Halo
 from scipy import signal
-from processor import AdminProcessor, InvalidAdminCommand
+from processor import AdminProcessor, InvalidAdminCommand, similar_words_to_numbers
 from pynput.keyboard import Key, Controller
 
 logging.basicConfig(level=20)
@@ -163,7 +163,7 @@ def main(ARGS):
         ARGS.model = os.path.join(model_dir, 'output_graph.pb')
         ARGS.scorer = os.path.join(model_dir, ARGS.scorer)
 
-    commands = AdminProcessor()
+    commands = AdminProcessor(similar_words=similar_words_to_numbers())
     keyboard = Controller()
     print('Initializing model...')
     logging.info("ARGS.model: %s", ARGS.model)

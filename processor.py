@@ -1,5 +1,24 @@
 import re
-import os
+
+
+def similar_words_to_numbers():
+    return {'for': 'four',
+            'to': 'two',
+            'at': 'eight',
+            'or': 'all',
+            'not': 'zero'}
+
+
+def adjust_similar_words(x: str, words):
+    elements = x.split(' ')
+
+    for i in range(len(elements)):
+        try:
+            elements[i] = words[elements[i]]
+        except KeyError:
+            pass
+
+    return ' '.join(elements)
 
 
 def text_to_number(x):
@@ -25,18 +44,26 @@ class InvalidAdminCommand(Exception):
 
 
 class AdminProcessor:
-    def __init__(self):
+    def __init__(self, similar_words=None):
         self.penalty_pattern = re.compile(
-            r".*(time \w+|stop go \w+|go away|run) (number [one|two|three|four|five|six|seven|eight|nine ]+)")
-        self.clear_pattern = re.compile(
-            r".*command clear (all|time [one|two|three|four|five|six|seven|eight|nine ]+|number [one|two|three|four|five|six|seven|eight|nine ]+)")
+            r".*(time \w+|stop go \w+|go away|run) (number [zero|one|two|three|four|five|six|seven|eight|nine ]+)")
 
-        self.restart_pattern = re.compile(r".*command restart")
-        self.next_pattern = re.compile(r".*command next")
-        self.enter_pattern = re.compile(r".*do it do it")
+        self.clear_all_pattern = re.compile('.*people you can go')
+        self.clear_time_pattern = re.compile(
+            '.*you can go time ([zero|one|two|three|four|five|six|seven|eight|nine ]+)')
+        self.clear_pattern = re.compile(
+            '.*you can go ([zero|one|two|three|four|five|six|seven|eight|nine ]+)')
+
+        self.restart_pattern = re.compile(r".*people go again")
+        self.next_pattern = re.compile(r".*people go next")
+        self.enter_pattern = re.compile(r"open open")
         self.escape_pattern = re.compile(r".*escape escape")
+        self.similar_words = similar_words
 
     def get(self, x):
+        if self.similar_words is not None:
+            x = adjust_similar_words(x, self.similar_words)
+
         penalty_match = self.penalty_pattern.match(x)
 
         if penalty_match is not None:
@@ -44,11 +71,20 @@ class AdminProcessor:
             car_number = penalty_match.group(2)
             return self._process_penalty(penalty, car_number)
 
+        clear_time_match = self.clear_time_pattern.match(x)
+
+        if clear_time_match is not None:
+            command = clear_time_match.group(1)
+            return self._clear_time(command)
+
         clear_match = self.clear_pattern.match(x)
 
         if clear_match is not None:
             command = clear_match.group(1)
-            return self._process_clear(command)
+            return self._clear(command)
+
+        if self.clear_all_pattern.match(x):
+            return self._clear_all()
 
         if self.restart_pattern.match(x) is not None:
             return self._restart_command()
@@ -60,9 +96,31 @@ class AdminProcessor:
             return self._hit_enter()
 
         if self.escape_pattern.match(x) is not None:
-            return self._hit_enter()
+            return self._hit_escape()
 
         return None
+
+    @staticmethod
+    def _clear_all():
+        return '/clear_all'
+
+    @staticmethod
+    def _clear_time(x):
+        numbers = list(map(text_to_number, x.split(' ')))
+        if -1 in numbers:
+            raise InvalidAdminCommand
+        car = numbers_to_text(numbers)
+
+        return '/cleartp {}'.format(numbers_to_text(car))
+
+    @staticmethod
+    def _clear(x):
+        numbers = list(map(text_to_number, x.split(' ')))
+        if -1 in numbers:
+            raise InvalidAdminCommand
+        car = numbers_to_text(numbers)
+
+        return '/clear {}'.format(numbers_to_text(car))
 
     @staticmethod
     def _next_command():
@@ -74,7 +132,11 @@ class AdminProcessor:
 
     @staticmethod
     def _hit_enter():
-        return os.linesep
+        return '\n'
+
+    @staticmethod
+    def _hit_escape():
+        return chr(27)
 
     @staticmethod
     def _process_penalty(penalty, car_number):
@@ -100,25 +162,5 @@ class AdminProcessor:
             return '/tp{} {}'.format(time, car)
         elif penalty.startswith('stop go'):
             return '/sg{} {}'.format(time, car)
-
-        return None
-
-    @staticmethod
-    def _process_clear(command):
-        elements = command.split(' ')
-        if command.startswith('all'):
-            return '/clear_all'
-
-        numbers = elements[1:]
-        numbers = list(map(text_to_number, numbers))
-        if -1 in numbers:
-            raise InvalidAdminCommand
-
-        car = numbers_to_text(numbers)
-
-        if command.startswith('time'):
-            return '/clear_tp {}'.format(car)
-        elif command.startswith('number'):
-            return '/clear {}'.format(car)
 
         return None
