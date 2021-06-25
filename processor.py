@@ -6,7 +6,9 @@ def similar_words_to_numbers():
             'to': 'two',
             'at': 'eight',
             'or': 'all',
-            'not': 'zero'}
+            'not': 'zero',
+            'on': 'one',
+            'can\'t': 'ca/tp5 75n'}
 
 
 def adjust_similar_words(x: str, words):
@@ -46,7 +48,7 @@ class InvalidAdminCommand(Exception):
 class AdminProcessor:
     def __init__(self, similar_words=None):
         self.penalty_pattern = re.compile(
-            r".*(time \w+|stop go \w+|go away|run) (number [zero|one|two|three|four|five|six|seven|eight|nine ]+)")
+            r".*(time \w+|stop go \w+|go away|through) (number [zero|one|two|three|four|five|six|seven|eight|nine ]+)")
 
         self.clear_all_pattern = re.compile('.*people you can go')
         self.clear_time_pattern = re.compile(
@@ -150,7 +152,7 @@ class AdminProcessor:
 
         car = numbers_to_text(numbers)
 
-        if penalty.startswith('run'):
+        if penalty.startswith('through'):
             return '/dt {}'.format(car)
         elif penalty.startswith('go away'):
             return '/dq {}'.format(car)
